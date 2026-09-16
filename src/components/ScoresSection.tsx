@@ -60,7 +60,8 @@ export const ScoresSection: React.FC<ScoresSectionProps> = ({
       // แปลงคำตอบที่ผู้เรียนเลือกในแต่ละข้อของแบบทดสอบหลังเรียน:
       // Choice A -> 1, Choice B -> 2, Choice C -> 3, Choice D -> 4, หากไม่ได้ตอบ/หมดเวลา -> "-"
       const answers: (number | string)[] = Array.from({ length: 20 }, (_, idx) => {
-        const ans = postAnswers[idx];
+        const qId = `q${idx + 1}`;
+        const ans = postAnswers.find((a) => a && a.questionId === qId) || postAnswers[idx];
         if (!ans || !ans.selectedAnswerId) return '-';
 
         const raw = String(ans.selectedAnswerId).trim();

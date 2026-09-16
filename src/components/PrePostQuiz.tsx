@@ -31,31 +31,36 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
 
   const isPre = type === 'pre';
   const title = isPre ? 'แบบทดสอบก่อนเรียน' : 'แบบทดสอบหลังเรียน';
-  const questions: QuizQuestion[] = ALL_QUIZ_QUESTIONS;
-  const currentQuestion = questions[currentIndex];
 
-  // For posttest, shuffle choices per question deterministically or randomly once
-  const [shuffledChoices, setShuffledChoices] = useState<Record<number, typeof currentQuestion.choices>>({});
+  // Helper to initialize questions:
+  // แบบทดสอบก่อนเรียน: สุ่มสลับข้อ
+  // แบบทดสอบหลังเรียน: ให้อิงตามเฉลย ข้อ 1-20
+  const getQuizQuestions = () => {
+    if (isPre) {
+      const arr = [...ALL_QUIZ_QUESTIONS];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    return [...ALL_QUIZ_QUESTIONS];
+  };
+
+  const [questions, setQuestions] = useState<QuizQuestion[]>(getQuizQuestions);
+  const currentQuestion = questions[currentIndex] || questions[0];
 
   useEffect(() => {
-    if (!isPre) {
-      const map: Record<number, typeof currentQuestion.choices> = {};
-      questions.forEach((q, qIndex) => {
-        // Shuffle choices for posttest
-        const arr = [...q.choices];
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        map[qIndex] = arr;
-      });
-      setShuffledChoices(map);
-    }
-  }, [isPre]);
+    setCurrentIndex(0);
+    setSelectedAnswerId(null);
+    setIsAnswerSubmitted(false);
+    setTimeLeft(20);
+    setUserAnswers([]);
+    setIsReviewMode(false);
+    setQuestions(getQuizQuestions());
+  }, [type]);
 
-  const displayedChoices = (!isPre && shuffledChoices[currentIndex])
-    ? shuffledChoices[currentIndex]
-    : currentQuestion.choices;
+  const displayedChoices = currentQuestion ? currentQuestion.choices : [];
 
   // Initialize or reset
   const handleStartRetake = () => {
@@ -65,18 +70,7 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
     setTimeLeft(20);
     setUserAnswers([]);
     setIsReviewMode(false);
-    if (!isPre) {
-      const map: Record<number, typeof currentQuestion.choices> = {};
-      questions.forEach((q, qIndex) => {
-        const arr = [...q.choices];
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        map[qIndex] = arr;
-      });
-      setShuffledChoices(map);
-    }
+    setQuestions(getQuizQuestions());
   };
 
   // Timer countdown
@@ -104,7 +98,11 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
 
   const handleTimeOut = () => {
     if (isAnswerSubmitted) return;
-    sounds.playIncorrect();
+    if (isPre) {
+      sounds.playTap();
+    } else {
+      sounds.playIncorrect();
+    }
     setIsAnswerSubmitted(true);
     const newRecord: QuizAnswerRecord = {
       questionId: currentQuestion.id,
@@ -125,10 +123,14 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
     if (timerRef.current) clearInterval(timerRef.current);
 
     const isCorrect = selectedAnswerId === currentQuestion.correctAnswerId;
-    if (isCorrect) {
-      sounds.playCorrect();
+    if (isPre) {
+      sounds.playTap();
     } else {
-      sounds.playIncorrect();
+      if (isCorrect) {
+        sounds.playCorrect();
+      } else {
+        sounds.playIncorrect();
+      }
     }
 
     setIsAnswerSubmitted(true);
@@ -197,18 +199,20 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
             <ArrowRight className="w-4 h-4" />
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsReviewMode(true)}
-            className="px-5 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition cursor-pointer flex items-center gap-1.5"
-          >
-            <BookOpen className="w-4 h-4 text-slate-600" />
-            <span>ดูเฉลยและทบทวนข้อสอบ</span>
-          </button>
+          {!isPre && (
+            <button
+              type="button"
+              onClick={() => setIsReviewMode((prev) => !prev)}
+              className="px-5 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition cursor-pointer flex items-center gap-1.5"
+            >
+              <BookOpen className="w-4 h-4 text-slate-600" />
+              <span>{isReviewMode ? 'ซ่อนเฉลย' : 'ดูเฉลยและทบทวนข้อสอบ'}</span>
+            </button>
+          )}
         </div>
 
-        {/* Review list when toggled */}
-        {isReviewMode && (
+        {/* Review list when toggled (available only in post-test) */}
+        {!isPre && isReviewMode && (
           <div className="mt-8 text-left border-t border-slate-200 pt-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900">
@@ -288,11 +292,17 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
 
         <div className="flex items-center gap-4">
           {/* Live score counter */}
-          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl">
-            <span className="text-emerald-600">✓ ถูก {correctCount}</span>
-            <span className="text-slate-300">|</span>
-            <span className="text-rose-600">✕ ผิด {wrongCount}</span>
-          </div>
+          {isPre ? (
+            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl">
+              <span>ตอบแล้ว {answeredCount} / {questions.length} ข้อ</span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl">
+              <span className="text-emerald-600">✓ ถูก {correctCount}</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-rose-600">✕ ผิด {wrongCount}</span>
+            </div>
+          )}
 
           {/* 20s Countdown timer */}
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl">
@@ -332,12 +342,21 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
           let btnStyles = 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 hover:border-blue-400';
 
           if (isAnswerSubmitted) {
-            if (isCorrectChoice) {
-              btnStyles = 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-400/40 font-bold';
-            } else if (isSelected && !isCorrectChoice) {
-              btnStyles = 'bg-rose-50 border-rose-400 text-rose-900 ring-2 ring-rose-300/40 font-bold';
+            if (isPre) {
+              // ในแบบทดสอบก่อนเรียน ไม่เฉลยข้อคำตอบ แสดงเฉพาะตัวเลือกที่นักเรียนเลือกไว้
+              if (isSelected) {
+                btnStyles = 'bg-blue-50 border-blue-600 text-blue-900 ring-2 ring-blue-500/30 font-bold';
+              } else {
+                btnStyles = 'bg-slate-50 border-slate-200 text-slate-400 opacity-60';
+              }
             } else {
-              btnStyles = 'bg-slate-50 border-slate-200 text-slate-400 opacity-60';
+              if (isCorrectChoice) {
+                btnStyles = 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-400/40 font-bold';
+              } else if (isSelected && !isCorrectChoice) {
+                btnStyles = 'bg-rose-50 border-rose-400 text-rose-900 ring-2 ring-rose-300/40 font-bold';
+              } else {
+                btnStyles = 'bg-slate-50 border-slate-200 text-slate-400 opacity-60';
+              }
             }
           } else if (isSelected) {
             btnStyles = 'bg-blue-50 border-blue-600 text-blue-900 ring-2 ring-blue-500/30 font-bold';
@@ -351,24 +370,27 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
               onClick={() => handleSelectChoice(choice.answerId)}
               className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${btnStyles}`}
             >
-              <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                isAnswerSubmitted && isCorrectChoice
-                  ? 'bg-emerald-600 text-white'
-                  : isAnswerSubmitted && isSelected && !isCorrectChoice
-                  ? 'bg-rose-600 text-white'
-                  : isSelected
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700'
-              }`}>
-                {letter}
-              </span>
+              <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs ${
+                  !isPre && isAnswerSubmitted && isCorrectChoice
+                    ? 'bg-emerald-600 text-white'
+                    : !isPre && isAnswerSubmitted && isSelected && !isCorrectChoice
+                    ? 'bg-rose-600 text-white'
+                    : isSelected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-700'
+                }`}>
+                  {index + 1}
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">({letter})</span>
+              </div>
               <span className="text-sm sm:text-base font-medium flex-1 pt-0.5 leading-snug">
                 {choice.text}
               </span>
-              {isAnswerSubmitted && isCorrectChoice && (
+              {!isPre && isAnswerSubmitted && isCorrectChoice && (
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               )}
-              {isAnswerSubmitted && isSelected && !isCorrectChoice && (
+              {!isPre && isAnswerSubmitted && isSelected && !isCorrectChoice && (
                 <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               )}
             </button>
@@ -378,33 +400,49 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
 
       {/* Immediate feedback explanation when answered */}
       {isAnswerSubmitted && (
-        <div
-          className={`p-4 sm:p-5 rounded-2xl border mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300 ${
-            selectedAnswerId === currentQuestion.correctAnswerId
-              ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
-              : 'bg-rose-50/90 border-rose-200 text-rose-950'
-          }`}
-        >
-          <div className="flex items-start gap-2.5">
-            {selectedAnswerId === currentQuestion.correctAnswerId ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            ) : (
-              <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            )}
-            <div>
-              <div className="font-bold text-sm sm:text-base">
-                {selectedAnswerId === currentQuestion.correctAnswerId
-                  ? 'ยอดเยี่ยม! คำตอบถูกต้อง ✓'
-                  : selectedAnswerId === null
-                  ? 'หมดเวลา! ตอบไม่ทันใน 20 วินาที'
-                  : 'ยังไม่ถูกต้องนะ ✕'}
+        isPre ? (
+          <div className="p-4 sm:p-5 rounded-2xl border mb-6 bg-blue-50/80 border-blue-200 text-blue-950 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-sm sm:text-base text-blue-900">
+                  {selectedAnswerId ? 'บันทึกคำตอบข้อนี้เรียบร้อยแล้ว' : 'หมดเวลา! บันทึกว่าไม่ได้เลือกคำตอบ'}
+                </div>
+                <p className="text-xs sm:text-sm text-blue-800 mt-1 leading-relaxed">
+                  แบบทดสอบก่อนเรียนไม่มีการเฉลยคำตอบ เพื่อประเมินความรู้พื้นฐานก่อนเข้าสู่บทเรียน กรุณากดปุ่ม <strong>"ไปข้อถัดไป"</strong> ด้านล่าง
+                </p>
               </div>
-              <p className="text-xs sm:text-sm mt-1 leading-relaxed text-slate-700">
-                <strong>คำอธิบาย:</strong> {currentQuestion.explanation}
-              </p>
             </div>
           </div>
-        </div>
+        ) : (
+          <div
+            className={`p-4 sm:p-5 rounded-2xl border mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+              selectedAnswerId === currentQuestion.correctAnswerId
+                ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+                : 'bg-rose-50/90 border-rose-200 text-rose-950'
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              {selectedAnswerId === currentQuestion.correctAnswerId ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <div className="font-bold text-sm sm:text-base">
+                  {selectedAnswerId === currentQuestion.correctAnswerId
+                    ? 'ยอดเยี่ยม! คำตอบถูกต้อง ✓'
+                    : selectedAnswerId === null
+                    ? 'หมดเวลา! ตอบไม่ทันใน 20 วินาที'
+                    : 'ยังไม่ถูกต้องนะ ✕'}
+                </div>
+                <p className="text-xs sm:text-sm mt-1 leading-relaxed text-slate-700">
+                  <strong>คำอธิบาย:</strong> {currentQuestion.explanation}
+                </p>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       {/* Actions footer */}
