@@ -154,6 +154,9 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
       const finalScore = finalAnswers.filter((a) => a.isCorrect).length;
       sounds.playFanfare();
       onComplete(finalScore, finalAnswers);
+      if (isPre && onNavigateNext) {
+        onNavigateNext();
+      }
     }
   };
 
@@ -409,7 +412,7 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
                   {selectedAnswerId ? 'บันทึกคำตอบข้อนี้เรียบร้อยแล้ว' : 'หมดเวลา! บันทึกว่าไม่ได้เลือกคำตอบ'}
                 </div>
                 <p className="text-xs sm:text-sm text-blue-800 mt-1 leading-relaxed">
-                  แบบทดสอบก่อนเรียนไม่มีการเฉลยคำตอบ เพื่อประเมินความรู้พื้นฐานก่อนเข้าสู่บทเรียน กรุณากดปุ่ม <strong>"ไปข้อถัดไป"</strong> ด้านล่าง
+                  แบบทดสอบก่อนเรียนไม่มีการเฉลยคำตอบ เพื่อประเมินความรู้พื้นฐานก่อนเข้าสู่บทเรียน กรุณากดปุ่ม <strong>"{currentIndex === questions.length - 1 ? 'ไปยังเนื้อหาความรู้' : 'ไปข้อถัดไป'}"</strong> ด้านล่าง
                 </p>
               </div>
             </div>
@@ -466,7 +469,13 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
             onClick={handleNextQuestion}
             className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-sm shadow-md shadow-indigo-600/25 transition cursor-pointer active:scale-95 flex items-center gap-2"
           >
-            <span>{currentIndex === questions.length - 1 ? 'ดูผลคะแนนสอบ 🎉' : 'ไปข้อถัดไป'}</span>
+            <span>
+              {currentIndex === questions.length - 1
+                ? isPre
+                  ? 'ไปยังเนื้อหาความรู้ 📖'
+                  : 'ดูผลคะแนนสอบ 🎉'
+                : 'ไปข้อถัดไป'}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         )}
