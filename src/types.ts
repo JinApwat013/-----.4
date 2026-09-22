@@ -59,7 +59,10 @@ export interface StudentProgress {
   worksheetScore: number;
   passwordScore: number;
   passwordMissionsCompleted: number[];
+  surveyDone?: boolean;
+  surveyRatings?: (number | null)[];
+  surveySubmittedAt?: string;
   soundEnabled: boolean;
 }
 
-export type ActiveScreen = 'pretest' | 'lesson' | 'posttest' | 'game' | 'scores';
+export type ActiveScreen = 'pretest' | 'lesson' | 'game' | 'posttest' | 'scores' | 'survey';

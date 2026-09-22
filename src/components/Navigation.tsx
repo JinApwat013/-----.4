@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Award, CheckCircle2, Lock, FileText, BarChart3, HelpCircle } from 'lucide-react';
+import { BookOpen, Award, CheckCircle2, Lock, FileText, BarChart3, HelpCircle, Heart } from 'lucide-react';
 import { ActiveScreen } from '../types';
 
 interface NavigationProps {
@@ -7,6 +7,7 @@ interface NavigationProps {
   onSelectScreen: (screen: ActiveScreen) => void;
   preDone: boolean;
   postDone: boolean;
+  surveyDone?: boolean;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -14,6 +15,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onSelectScreen,
   preDone,
   postDone,
+  surveyDone = false,
 }) => {
   const tabs = [
     {
@@ -51,12 +53,19 @@ export const Navigation: React.FC<NavigationProps> = ({
       badge: null,
       locked: !preDone,
     },
+    {
+      id: 'survey' as ActiveScreen,
+      label: 'แบบประเมินความพึงพอใจ',
+      icon: Heart,
+      badge: surveyDone ? 'ประเมินแล้ว ✓' : '12 ข้อ',
+      locked: !postDone,
+    },
   ];
 
   return (
     <nav aria-label="เมนูบทเรียน" className="mb-6">
       <div className="bg-white/80 backdrop-blur-md rounded-3xl p-2.5 border border-amber-200/80 shadow-md shadow-amber-900/5">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeScreen === tab.id;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { QuizQuestion, QuizAnswerRecord } from '../types';
 import { ALL_QUIZ_QUESTIONS } from '../data/lessonsData';
 import { sounds } from '../utils/audio';
-import { CheckCircle2, XCircle, Clock, Award, ArrowRight, RotateCcw, Check, Sparkles, BookOpen } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Award, ArrowRight, RotateCcw, Check, Sparkles, BookOpen, Heart } from 'lucide-react';
 
 interface PrePostQuizProps {
   type: 'pre' | 'post';
@@ -11,6 +11,7 @@ interface PrePostQuizProps {
   savedAnswers: QuizAnswerRecord[];
   onComplete: (score: number, answers: QuizAnswerRecord[]) => void;
   onNavigateNext: () => void;
+  onNavigateToSurvey?: () => void;
 }
 
 export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
@@ -20,6 +21,7 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
   savedAnswers,
   onComplete,
   onNavigateNext,
+  onNavigateToSurvey,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
@@ -201,6 +203,17 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
             <span>{isPre ? 'ไปที่เนื้อหาความรู้ 📖' : 'ดูคะแนนและการพัฒนา 📈'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
+
+          {!isPre && onNavigateToSurvey && (
+            <button
+              type="button"
+              onClick={onNavigateToSurvey}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-sm shadow-md transition active:scale-95 cursor-pointer flex items-center gap-2"
+            >
+              <Heart className="w-4 h-4 fill-white text-white" />
+              <span>ทำแบบประเมินความพึงพอใจ 💖</span>
+            </button>
+          )}
 
           {!isPre && (
             <button

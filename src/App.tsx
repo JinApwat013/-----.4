@@ -8,6 +8,7 @@ import { PrePostQuiz } from './components/PrePostQuiz';
 import { LearningHub } from './components/LearningHub';
 import { WorksheetsSection } from './components/WorksheetsSection';
 import { ScoresSection } from './components/ScoresSection';
+import { SatisfactionSurveySection } from './components/SatisfactionSurveySection';
 import { LogoutModal } from './components/LogoutModal';
 import { ArrowUp } from 'lucide-react';
 
@@ -28,6 +29,8 @@ const initialProgress: StudentProgress = {
   worksheetScore: 0,
   passwordScore: 0,
   passwordMissionsCompleted: [],
+  surveyDone: false,
+  surveyRatings: Array(12).fill(null),
   soundEnabled: true,
 };
 
@@ -145,6 +148,15 @@ export default function App() {
     }));
   };
 
+  const handleSurveyComplete = (ratings: number[], means: { content: number; design: number; activity: number; total: number }) => {
+    setProgress((prev) => ({
+      ...prev,
+      surveyDone: true,
+      surveyRatings: ratings,
+      surveySubmittedAt: new Date().toISOString(),
+    }));
+  };
+
   // Reset/Logout
   const handleConfirmLogout = () => {
     sounds.playTap();
@@ -203,6 +215,7 @@ export default function App() {
           }}
           preDone={progress.preDone}
           postDone={progress.postDone}
+          surveyDone={progress.surveyDone}
         />
 
         {/* Screens */}
@@ -225,6 +238,7 @@ export default function App() {
 
           {activeScreen === 'game' && (
             <WorksheetsSection
+              studentName={progress.name}
               safeTechAnswers={progress.safeTechAnswers}
               safeTechScore={progress.safeTechScore}
               worksheetAnswers={progress.worksheetAnswers}
@@ -248,6 +262,10 @@ export default function App() {
                 setActiveScreen('scores');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
+              onNavigateToSurvey={() => {
+                setActiveScreen('survey');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           )}
 
@@ -263,6 +281,24 @@ export default function App() {
               passwordScore={progress.passwordScore}
               passwordMissionsCount={progress.passwordMissionsCompleted.length}
               postAnswers={progress.postAnswers}
+              surveyDone={progress.surveyDone}
+              onNavigateToSurvey={() => {
+                setActiveScreen('survey');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          )}
+
+          {activeScreen === 'survey' && (
+            <SatisfactionSurveySection
+              studentName={progress.name}
+              savedRatings={progress.surveyRatings}
+              isAlreadySubmitted={progress.surveyDone}
+              onSurveyCompleted={handleSurveyComplete}
+              onNavigateToScores={() => {
+                setActiveScreen('scores');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           )}
         </main>
