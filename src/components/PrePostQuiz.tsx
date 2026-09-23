@@ -75,8 +75,9 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
     setQuestions(getQuizQuestions());
   };
 
-  // Timer countdown
+  // Timer countdown (only for pre-test; post-test has no time limit)
   useEffect(() => {
+    if (!isPre) return;
     if (isCompleted && !isReviewMode && userAnswers.length === 0) return;
     if (isAnswerSubmitted) return;
 
@@ -96,7 +97,7 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentIndex, isAnswerSubmitted, isCompleted]);
+  }, [currentIndex, isAnswerSubmitted, isCompleted, isPre]);
 
   const handleTimeOut = () => {
     if (isAnswerSubmitted) return;
@@ -320,16 +321,23 @@ export const PrePostQuiz: React.FC<PrePostQuizProps> = ({
             </div>
           )}
 
-          {/* 20s Countdown timer */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl">
-            <Clock className={`w-4 h-4 ${timeLeft <= 5 ? 'text-rose-600 animate-pulse' : 'text-blue-600'}`} />
-            <div className="text-right">
-              <span className={`text-base font-black ${timeLeft <= 5 ? 'text-rose-600' : 'text-slate-800'}`}>
-                {timeLeft}
-              </span>
-              <span className="text-[10px] text-slate-500 ml-1">วินาที</span>
+          {/* Countdown timer for pre-test or unlimited time badge for post-test */}
+          {isPre ? (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl">
+              <Clock className={`w-4 h-4 ${timeLeft <= 5 ? 'text-rose-600 animate-pulse' : 'text-blue-600'}`} />
+              <div className="text-right">
+                <span className={`text-base font-black ${timeLeft <= 5 ? 'text-rose-600' : 'text-slate-800'}`}>
+                  {timeLeft}
+                </span>
+                <span className="text-[10px] text-slate-500 ml-1">วินาที</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-2xl text-emerald-800 text-xs font-semibold shadow-2xs">
+              <Clock className="w-3.5 h-3.5 text-emerald-600" />
+              <span>ไม่จำกัดเวลา</span>
+            </div>
+          )}
         </div>
       </div>
 
